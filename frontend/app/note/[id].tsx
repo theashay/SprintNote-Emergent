@@ -1,0 +1,305 @@
+import { useState } from 'react';
+import { View, StyleSheet, ScrollView, ActivityIndicator, Alert, Platform, TextInput } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ChevronLeft, Wand2, Trash2, Copy, Share2, Heart, Lock, Edit3, Save, X } from 'lucide-react-native';
+import { colors, radius, shadows, spacing, typography } from '../../lib/theme';
+import { Text } from '../../components/Text';
+import AnimatedPressable from '../../components/Pressable';
+import StylePickerSheet from '../../components/StylePickerSheet';
+import { api } from '../../lib/api';
+
+function fDate(iso?: string) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  } catch { return ''; }
+}
+
+export default function NoteDetail() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const qc = useQueryClient();
+  const [styleSheetOpen, setStyleSheetOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ title: '', polished: '' });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['note', id],
+    queryFn: () => api.getNote(String(id)),
+    enabled: !!id,
+  });
+  const note = data?.note;
+
+  const updateMut = useMutation({
+    mutationFn: (body: any) => api.updateNote(String(id), body),
+    onSuccess: (d) => {
+      qc.setQueryData(['note', id], { note: d.note });
+      qc.invalidateQueries({ queryKey: ['notes'] });
+    },
+  });
+
+  const rewriteMut = useMutation({
+    mutationFn: (params: { style: string; level: string }) =>
+      api.rewrite({ transcript: note?.transcript || '', style: params.style, level: params.level }),
+    onSuccess: async (r) => {
+      if (note) {
+        await updateMut.mutateAsync({ polished: r.polished, title: r.title || note.title, style: r.style });
+      }
+    },
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: () => api.deleteNote(String(id)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notes'] });
+      router.back();
+    },
+  });
+
+  const confirmDelete = () => {
+    if (Platform.OS === 'web') {
+      // eslint-disable-next-line no-alert
+      if (typeof window !== 'undefined' && window.confirm('Delete this note?')) deleteMut.mutate();
+    } else {
+      Alert.alert('Delete note?', 'This action cannot be undone.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteMut.mutate() },
+      ]);
+    }
+  };
+
+  if (isLoading || !note) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const startEdit = () => {
+    setDraft({ title: note.title, polished: note.polished || note.transcript });
+    setEditing(true);
+  };
+  const saveEdit = async () => {
+    await updateMut.mutateAsync({ title: draft.title, polished: draft.polished });
+    setEditing(false);
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']} testID="note-detail-screen">
+      <View style={styles.headerRow}>
+        <AnimatedPressable testID="note-back" onPress={() => router.back()} style={styles.iconBtn}>
+          <ChevronLeft size={22} color={colors.textPrimary} />
+        </AnimatedPressable>
+        <View style={styles.privateBadge}>
+          <Lock size={11} color={colors.textTertiary} />
+          <Text variant="small" color={colors.textTertiary} style={{ marginLeft: 4 }}>
+            private
+          </Text>
+        </View>
+        <AnimatedPressable testID="favorite-toggle" onPress={() => updateMut.mutate({ favorite: !note.favorite })} style={styles.iconBtn}>
+          <Heart size={18} color={note.favorite ? colors.primary : colors.textTertiary} fill={note.favorite ? colors.primary : 'transparent'} />
+        </AnimatedPressable>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        <Text variant="caption" color={colors.textTertiary} style={{ textAlign: 'center' }}>
+          {fDate(note.created_at)}
+        </Text>
+        {editing ? (
+          <TextInput
+            testID="title-edit-input"
+            style={[typography.h1 as any, styles.titleInput]}
+            value={draft.title}
+            onChangeText={(v) => setDraft((d) => ({ ...d, title: v }))}
+            placeholder="Title"
+            multiline
+          />
+        ) : (
+          <Text style={[typography.h1 as any, styles.title]} testID="note-title">
+            {note.title}
+          </Text>
+        )}
+        <View style={styles.divider} />
+
+        {editing ? (
+          <TextInput
+            testID="body-edit-input"
+            style={[typography.bodyLg as any, styles.bodyInput]}
+            value={draft.polished}
+            onChangeText={(v) => setDraft((d) => ({ ...d, polished: v }))}
+            placeholder="Your note…"
+            multiline
+            scrollEnabled={false}
+          />
+        ) : (
+          <Text variant="bodyLg" color={colors.textPrimary} style={styles.transcript} testID="note-body">
+            {note.polished || note.transcript}
+          </Text>
+        )}
+
+        {note.style && !editing ? (
+          <View style={styles.stylePill}>
+            <Wand2 size={12} color={colors.primary} />
+            <Text variant="small" color={colors.primary} style={{ marginLeft: 6, fontWeight: '700' }}>
+              Style: {note.style}
+            </Text>
+          </View>
+        ) : null}
+      </ScrollView>
+
+      <View style={styles.actionBar}>
+        {editing ? (
+          <>
+            <AnimatedPressable testID="cancel-edit-btn" onPress={() => setEditing(false)} style={styles.actionBtn}>
+              <X size={20} color={colors.textPrimary} />
+            </AnimatedPressable>
+            <AnimatedPressable testID="save-edit-btn" onPress={saveEdit} style={[styles.actionBtn, { backgroundColor: colors.primary }]}>
+              <Save size={20} color={colors.white} />
+            </AnimatedPressable>
+          </>
+        ) : (
+          <>
+            <AnimatedPressable testID="delete-note" onPress={confirmDelete} style={styles.actionBtn}>
+              <Trash2 size={20} color={colors.textPrimary} />
+            </AnimatedPressable>
+            <AnimatedPressable testID="edit-note" onPress={startEdit} style={styles.actionBtn}>
+              <Edit3 size={20} color={colors.textPrimary} />
+            </AnimatedPressable>
+            <AnimatedPressable
+              testID="rewrite-fab"
+              onPress={() => setStyleSheetOpen(true)}
+              style={styles.magicFab}
+              scaleTo={0.92}
+            >
+              {rewriteMut.isPending ? <ActivityIndicator color={colors.white} /> : <Wand2 size={22} color={colors.white} />}
+              <Text style={{ color: colors.white, fontWeight: '700', marginLeft: 8 }}>
+                Rewrite
+              </Text>
+            </AnimatedPressable>
+            <AnimatedPressable testID="copy-note" onPress={() => {}} style={styles.actionBtn}>
+              <Copy size={20} color={colors.textPrimary} />
+            </AnimatedPressable>
+            <AnimatedPressable testID="share-note" onPress={() => {}} style={styles.actionBtn}>
+              <Share2 size={20} color={colors.textPrimary} />
+            </AnimatedPressable>
+          </>
+        )}
+      </View>
+
+      <StylePickerSheet
+        visible={styleSheetOpen}
+        onClose={() => setStyleSheetOpen(false)}
+        initialStyle={(note.style as any) || 'Clear & Simple'}
+        onApply={(style, level) => {
+          setStyleSheetOpen(false);
+          rewriteMut.mutate({ style, level });
+        }}
+      />
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.sm,
+  },
+  privateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceMuted,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  body: { padding: spacing.lg, paddingBottom: 140 },
+  title: { textAlign: 'center', color: colors.textPrimary, marginTop: spacing.md },
+  titleInput: {
+    textAlign: 'center',
+    color: colors.textPrimary,
+    marginTop: spacing.md,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  divider: {
+    width: 60,
+    height: 4,
+    backgroundColor: colors.primary,
+    borderRadius: 999,
+    alignSelf: 'center',
+    marginVertical: spacing.lg,
+  },
+  transcript: { lineHeight: 30 },
+  bodyInput: {
+    lineHeight: 30,
+    color: colors.textPrimary,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    minHeight: 220,
+    textAlignVertical: 'top',
+  },
+  stylePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    alignSelf: 'flex-start',
+    marginTop: spacing.lg,
+  },
+  actionBar: {
+    position: 'absolute',
+    bottom: spacing.lg,
+    left: spacing.md,
+    right: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...shadows.lg,
+  },
+  actionBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 999,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  magicFab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 999,
+    ...shadows.lg,
+  },
+});
