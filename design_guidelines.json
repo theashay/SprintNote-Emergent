@@ -1,0 +1,181 @@
+{
+  "project_name": "SprintNote",
+  "theme_strategy": {
+    "mode": "Light Theme Only",
+    "color_archetype": "Premium SaaS / Soft Utility",
+    "core_palette_description": "Indigo/Electric Blue accent on warm off-white background. The aesthetic is clean, fast, and elegant, inspired by Linear, Notion, and AudioPen (but specifically avoiding AudioPen's orange). Uses subtle glassmorphism and deep soft shadows."
+  },
+  "colors": {
+    "background": "#FDFCFB",
+    "surface": "#FFFFFF",
+    "surface_muted": "#F4F4F5",
+    "primary": "#4F46E5",
+    "primary_hover": "#4338CA",
+    "primary_light": "#EEF2FF",
+    "text_primary": "#0F172A",
+    "text_secondary": "#64748B",
+    "text_tertiary": "#94A3B8",
+    "border": "#E2E8F0",
+    "border_light": "#F1F5F9",
+    "destructive": "#EF4444",
+    "success": "#10B981"
+  },
+  "typography": {
+    "strategy": "Serif display for hero titles (AudioPen style) for elegance, geometric sans-serif for UI clarity.",
+    "fonts": {
+      "display": "Newsreader, Playfair Display (Serif)",
+      "body": "Inter, SF Pro Display, Geist (Sans-serif)"
+    },
+    "scale": {
+      "h1": { "fontFamily": "display", "fontSize": 40, "fontWeight": "700", "lineHeight": 48, "letterSpacing": -1 },
+      "h2": { "fontFamily": "display", "fontSize": 32, "fontWeight": "700", "lineHeight": 40, "letterSpacing": -0.5 },
+      "h3": { "fontFamily": "body", "fontSize": 20, "fontWeight": "600", "lineHeight": 28, "letterSpacing": -0.3 },
+      "body_lg": { "fontFamily": "body", "fontSize": 18, "fontWeight": "400", "lineHeight": 28, "letterSpacing": 0 },
+      "body": { "fontFamily": "body", "fontSize": 16, "fontWeight": "400", "lineHeight": 24, "letterSpacing": 0 },
+      "caption": { "fontFamily": "body", "fontSize": 14, "fontWeight": "500", "lineHeight": 20, "letterSpacing": 0.2 },
+      "small": { "fontFamily": "body", "fontSize": 12, "fontWeight": "500", "lineHeight": 16, "letterSpacing": 0.5 }
+    }
+  },
+  "spacing": {
+    "xs": 4,
+    "sm": 8,
+    "md": 16,
+    "lg": 24,
+    "xl": 32,
+    "2xl": 48,
+    "3xl": 64
+  },
+  "borders": {
+    "radius": {
+      "sm": 8,
+      "md": 12,
+      "lg": 16,
+      "xl": 24,
+      "2xl": 32,
+      "full": 9999
+    },
+    "width": {
+      "default": 1,
+      "thick": 2
+    }
+  },
+  "shadows": {
+    "sm": { "shadowColor": "#0F172A", "shadowOffset": { "width": 0, "height": 2 }, "shadowOpacity": 0.05, "shadowRadius": 4, "elevation": 2 },
+    "md": { "shadowColor": "#0F172A", "shadowOffset": { "width": 0, "height": 4 }, "shadowOpacity": 0.08, "shadowRadius": 12, "elevation": 4 },
+    "lg": { "shadowColor": "#4F46E5", "shadowOffset": { "width": 0, "height": 8 }, "shadowOpacity": 0.15, "shadowRadius": 24, "elevation": 8 }
+  },
+  "components": {
+    "floating_record_fab": {
+      "layout": "absolute bottom 40px center-x, size 72x72",
+      "style": "borderRadius full, bg primary, shadow lg",
+      "interaction": "Pulse animation on recording, scale down on press",
+      "icon": "Mic icon (white, size 32)"
+    },
+    "note_card": {
+      "layout": "bg surface, padding lg, borderRadius xl, marginBottom md",
+      "style": "subtle shadow sm, border 1px border_light",
+      "content_hierarchy": "Date (caption, text_tertiary) -> Title (h3, text_primary) -> Excerpt (body, text_secondary, 2 lines max)"
+    },
+    "waveform": {
+      "layout": "flex-row center, height 80px",
+      "style": "multiple bars, width 4px, marginHorizontal 2px, borderRadius full, bg primary",
+      "animation": "Reanimated height variation based on audio metering or math.sin loop"
+    },
+    "style_picker_bottom_sheet": {
+      "layout": "absolute bottom, width 100%, bg surface, borderTopRadius 2xl, padding lg",
+      "header": "Title 'Select Style', right-aligned close icon",
+      "items": "Row layout, icon + text, selected state has bg primary_light and text primary with checkmark icon"
+    },
+    "tab_pills": {
+      "container": "row, bg surface_muted, padding xs, borderRadius full, alignSelf flex-start",
+      "unselected": "transparent bg, text_secondary, paddingVertical sm, paddingHorizontal lg",
+      "selected": "bg surface, text_primary, shadow sm, borderRadius full"
+    },
+    "paywall_pricing_card": {
+      "layout": "bg surface, padding lg, borderRadius xl, borderWidth 2",
+      "unselected": "borderColor border_light",
+      "selected": "borderColor primary, bg primary_light",
+      "content": "Tier name (caption), Price (h2), features list with checkmarks"
+    }
+  },
+  "screens": {
+    "1_Splash": {
+      "layout": "Center logo and brand name. Background: background",
+      "animation": "Reanimated fade-in and slight scale up"
+    },
+    "2_Onboarding": {
+      "layout": "FlatList pager. Top 50% image, bottom 50% content (Title h1, description body_lg).",
+      "controls": "Bottom row: Skip (text_tertiary) and Next (primary button, rounded full)"
+    },
+    "3_Login": {
+      "layout": "Safe area padding lg. Large Title 'Welcome to SprintNote'.",
+      "inputs": "Email input (large, border_light, bg surface_muted).",
+      "buttons": "Continue with Email (primary), Continue with Google (surface, border border_light, Google icon)"
+    },
+    "4_Dashboard": {
+      "header": "Row: Title 'Notes' (h2), settings icon right.",
+      "filters": "Search bar (bg surface_muted), Tab pills (All, Folders, Favorites).",
+      "content": "ScrollView of Note Cards.",
+      "overlay": "Floating Record FAB at bottom center. Pill indicator '12/50 notes saved' near top or bottom."
+    },
+    "5_Recording": {
+      "layout": "Glassmorphism modal over Dashboard (absolute fill, bg white/90, blur).",
+      "content": "Top: Output language selector. Center: Timer (h1), Waveform. Bottom: Pause/Resume, Stop (large primary), Cancel."
+    },
+    "6_Processing": {
+      "layout": "Centered layout. Animated spinner or abstract wave.",
+      "content": "Stepper text changing: 'Transcribing...' -> 'Structuring...' -> 'Refining...'"
+    },
+    "7_Note_Detail": {
+      "header": "Back arrow, 'Private' badge, Share icon, Menu dots.",
+      "content": "ScrollView. Date (caption). Title (h1 display font). Transcript (body_lg, text_primary, loose line height).",
+      "overlay": "Bottom right floating 'Magic Wand' FAB to open Style Picker bottom sheet."
+    },
+    "8_Search": {
+      "header": "Auto-focused search input (large). Cancel text right.",
+      "content": "Recent searches list or horizontal tags. Filtered Note Cards list below."
+    },
+    "9_Premium_Paywall": {
+      "layout": "Modal presentation. Hero abstract image. Title 'Unlock SprintNote Pro'.",
+      "content": "Toggle (Monthly/Annual). Pricing Cards. Features list. CTA Button (large, primary)."
+    },
+    "10_Settings": {
+      "layout": "Grouped list style. Section headers (uppercase, small, text_tertiary).",
+      "items": "Row items: Icon + Label + ChevronRight. E.g., Account, Default Style, Export Format, Sign Out."
+    }
+  },
+  "animations": {
+    "engine": "React Native Reanimated (v3)",
+    "fab_pulse": "useAnimatedStyle: scale 1 -> 1.1, withRepeat, withTiming(1000). Absolute positioning behind main FAB.",
+    "card_press": "useAnimatedStyle: scale -> 0.97 on pressIn, return to 1 on pressOut. Spring config (mass 1, damping 15).",
+    "skeleton_shimmer": "LinearGradient absolute fill, translateX from -100% to 100%, withRepeat, withTiming(1500).",
+    "bottom_sheet": "Slide up from bottom using translateY, interpolate background overlay opacity 0 -> 0.4.",
+    "page_transitions": "Expo Router 'fade' or custom slide from right."
+  },
+  "assets": {
+    "onboarding_images": [
+      {
+        "url": "https://images.unsplash.com/photo-1776448611495-ae2f69ae521e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODF8MHwxfHNlYXJjaHwzfHxtaW5pbWFsaXN0JTIwYWJzdHJhY3QlMjBsaWdodCUyMGJsdWV8ZW58MHx8fHwxNzc4NjY0Mjc4fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Abstract flowing blue and white fabric texture for Onboarding Page 1 (Capture Magic)"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1622579521534-8252f7da47fd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjB3b3Jrc3BhY2UlMjBtaW5pbWFsaXN0fGVufDB8fHx8MTc3ODY2NDI3OHww&ixlib=rb-4.1.0&q=85",
+        "description": "Minimalist pencils in cup on desk for Onboarding Page 2 (Structure & Clean)"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1666618207644-4de0226a3f85?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjB3b3Jrc3BhY2UlMjBtaW5pbWFsaXN0fGVufDB8fHx8MTc3ODY2NDI3OHww&ixlib=rb-4.1.0&q=85",
+        "description": "Clean, modern minimalist room with desk for Onboarding Page 3 (Organized Life)"
+      }
+    ]
+  },
+  "iconography": "lucide-react-native",
+  "instructions_to_main_agent": [
+    "All interactive and key informational elements MUST include a 'data-testid' attribute (e.g., data-testid='record-fab').",
+    "Adhere STRICTLY to the light theme. DO NOT introduce dark mode tokens or dark backgrounds.",
+    "Use Newsreader or Playfair Display for massive, elegant H1/H2 titles. Use Inter/Geist for all other UI text.",
+    "Do not use default React Native Button. Build custom pressables with Reanimated scale effects.",
+    "The primary color #4F46E5 must be used strategically for CTAs and the active recording state. Never use orange.",
+    "Shadows should be soft and diffuse (large shadowRadius, low shadowOpacity) to achieve the 'Linear' premium feel.",
+    "Ensure all components are thoroughly responsive across iOS and Android screen sizes using Flexbox."
+  ]
+}
