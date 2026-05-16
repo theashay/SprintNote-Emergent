@@ -8,7 +8,7 @@ import { useAuth } from '../lib/store';
 import { colors } from '../lib/theme';
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
+  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 1000 * 30 } },
 });
 
 export default function RootLayout() {

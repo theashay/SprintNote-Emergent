@@ -55,3 +55,13 @@
   from = "/api/ai/rewrite"
   to = "/.netlify/functions/ai-rewrite"
   status = 200
+
+[[redirects]]
+  from = "/api/payments/create-session"
+  to = "/.netlify/functions/payments-create-session"
+  status = 200
+
+[[redirects]]
+  from = "/api/payments/webhook"
+  to = "/.netlify/functions/payments-webhook"
+  status = 200

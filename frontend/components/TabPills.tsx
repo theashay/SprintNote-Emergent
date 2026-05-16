@@ -12,6 +12,42 @@ type Props = {
 };
 
 export default function TabPills({ options, value, onChange, testID }: Props) {
+  const isFixed = options.length === 2;
+
+  const content = options.map((opt) => {
+    const selected = opt === value;
+    return (
+      <AnimatedPressable
+        key={opt}
+        testID={`tab-pill-${opt}`}
+        onPress={() => onChange(opt)}
+        style={[
+          styles.pill,
+          selected ? styles.pillSelected : styles.pillUnselected,
+          isFixed && { flex: 1, alignItems: 'center' },
+        ]}
+        scaleTo={0.94}
+      >
+        <Text
+          style={[
+            typography.caption,
+            { color: selected ? colors.textPrimary : colors.textSecondary, fontWeight: '700' },
+          ]}
+        >
+          {opt}
+        </Text>
+      </AnimatedPressable>
+    );
+  });
+
+  if (isFixed) {
+    return (
+      <View style={[styles.container, { paddingRight: spacing.md }]} testID={testID}>
+        {content}
+      </View>
+    );
+  }
+
   return (
     <ScrollView
       horizontal
@@ -19,33 +55,14 @@ export default function TabPills({ options, value, onChange, testID }: Props) {
       contentContainerStyle={styles.container}
       testID={testID}
     >
-      {options.map((opt) => {
-        const selected = opt === value;
-        return (
-          <AnimatedPressable
-            key={opt}
-            testID={`tab-pill-${opt}`}
-            onPress={() => onChange(opt)}
-            style={[styles.pill, selected ? styles.pillSelected : styles.pillUnselected]}
-            scaleTo={0.94}
-          >
-            <Text
-              style={[
-                typography.caption,
-                { color: selected ? colors.textPrimary : colors.textSecondary, fontWeight: '600' },
-              ]}
-            >
-              {opt}
-            </Text>
-          </AnimatedPressable>
-        );
-      })}
+      {content}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flexDirection: 'row',
     paddingHorizontal: spacing.md,
     gap: spacing.sm,
     paddingVertical: spacing.xs,

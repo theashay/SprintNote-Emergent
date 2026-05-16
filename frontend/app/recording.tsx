@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Platform, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAudioRecorder, AudioModule, RecordingPresets } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { X, Pause, Play, Check, Sparkles } from 'lucide-react-native';
@@ -20,6 +21,7 @@ function format(ms: number) {
 }
 
 export default function Recording() {
+  const qc = useQueryClient();
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [elapsed, setElapsed] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -169,6 +171,11 @@ export default function Recording() {
         duration: Math.floor(elapsed / 1000),
         folder: 'Uncategorized',
       });
+      
+      // Seed the cache so the detail page opens instantly
+      qc.setQueryData(['note', created.note.note_id], { note: created.note });
+      qc.invalidateQueries({ queryKey: ['notes'] });
+
       router.replace(`/note/${created.note.note_id}`);
     } catch (e: any) {
       Alert.alert('Processing failed', e?.message || 'Unable to process the recording.');

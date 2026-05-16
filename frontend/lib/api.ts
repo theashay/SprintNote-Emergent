@@ -101,6 +101,10 @@ export const api = {
     req<{ title: string | null; polished: string; style: string; level: string }>(
       '/ai/rewrite', { method: 'POST', body }
     ),
+
+  // payments
+  createPaymentSession: (plan: 'monthly' | 'annual') =>
+    req<{ url: string }>('/payments/create-session', { method: 'POST', body: { plan } }),
 };
 
 export const BACKEND_URL = BASE;

@@ -3,9 +3,8 @@ import { View, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Platform
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Mic, Sparkles, Search, UploadCloud } from 'lucide-react-native';
+import { Mic, Sparkles, Search, Info } from 'lucide-react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming, Easing } from 'react-native-reanimated';
-import * as DocumentPicker from 'expo-document-picker';
 import { colors, radius, shadows, spacing } from '../lib/theme';
 import { Text } from '../components/Text';
 import AnimatedPressable from '../components/Pressable';
@@ -18,7 +17,6 @@ export default function Dashboard() {
   const user = useAuth((s) => s.user);
   const { selectedFolder, setSelectedFolder } = useUI();
   const qc = useQueryClient();
-  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!user) router.replace('/login');
@@ -35,7 +33,9 @@ export default function Dashboard() {
         favorite: selectedFolder === 'Favorites' ? true : undefined,
       }),
     enabled: !!user,
+    placeholderData: (prev) => prev, // Keeps old list visible while loading new one
   });
+
   const foldersQuery = useQuery({
     queryKey: ['folders'],
     queryFn: () => api.listFolders(),
@@ -45,12 +45,42 @@ export default function Dashboard() {
   const notes: Note[] = (notesQuery.data?.notes as Note[]) || [];
   const tabs = useMemo(() => {
     const fset = new Set(['All Notes', 'Favorites']);
-    foldersQuery.data?.folders.forEach((f) => fset.add(f.name));
+    foldersQuery.data?.folders.forEach((f) => {
+      if (f.name !== 'Uncategorized') fset.add(f.name);
+    });
     return Array.from(fset);
   }, [foldersQuery.data]);
 
   const used = (foldersQuery.data?.folders || []).reduce((a, f) => a + f.count, 0);
   const quota = user?.plan === 'pro' ? 9999 : 50;
+
+  // Prefetch Favorites and other folders for instant switching
+  useEffect(() => {
+    if (user && foldersQuery.data) {
+      // Prefetch Favorites
+      qc.prefetchQuery({
+        queryKey: ['notes', 'Favorites'],
+        queryFn: () => api.listNotes({ favorite: true }),
+        staleTime: 1000 * 60,
+      });
+      // Prefetch first 2 custom folders
+      foldersQuery.data.folders.slice(0, 2).forEach(f => {
+        qc.prefetchQuery({
+          queryKey: ['notes', f.name],
+          queryFn: () => api.listNotes({ folder: f.name }),
+          staleTime: 1000 * 60,
+        });
+      });
+      // Prefetch first 5 notes' details for instant opening
+      notes.slice(0, 5).forEach(n => {
+        qc.prefetchQuery({
+          queryKey: ['note', n.note_id],
+          queryFn: () => api.getNote(n.note_id),
+          staleTime: 1000 * 60,
+        });
+      });
+    }
+  }, [user, foldersQuery.data, qc, notes]);
 
   // FAB pulse animation
   const pulse = useSharedValue(0);
@@ -66,37 +96,12 @@ export default function Dashboard() {
     transform: [{ scale: 1 + pulse.value * 0.45 }],
   }));
 
-  const handleUpload = async () => {
-    try {
-      const res = await DocumentPicker.getDocumentAsync({
-        type: ['audio/*'],
-        copyToCacheDirectory: true,
-        multiple: false,
-      });
-      if (res.canceled || !res.assets?.length) return;
-      const file = res.assets[0];
-      setUploading(true);
-      try {
-        const tr = await api.transcribe(file.uri, file.name || 'upload.m4a');
-        const rw = await api.rewrite({ transcript: tr.transcript, style: 'Clear & Simple', level: 'Medium' });
-        const created = await api.createNote({
-          title: rw.title,
-          transcript: tr.transcript,
-          polished: rw.polished,
-          style: 'Clear & Simple',
-          folder: 'Uncategorized',
-        });
-        qc.invalidateQueries({ queryKey: ['notes'] });
-        qc.invalidateQueries({ queryKey: ['folders'] });
-        router.push(`/note/${created.note.note_id}`);
-      } catch (e: any) {
-        const msg = e?.message || 'Upload failed';
-        if (Platform.OS === 'web') window.alert(msg);
-        else Alert.alert('Upload failed', msg);
-      }
-    } finally {
-      setUploading(false);
-    }
+  const showInfo = () => {
+    Alert.alert(
+      'About SprintNote',
+      'SprintNote turns your spoken thoughts into clear, structured text using advanced AI.\n\nThink of it as your personal thinking partner—just record your voice and let the AI polish your ideas into professional notes.',
+      [{ text: 'Got it' }]
+    );
   };
 
   const renderHeader = () => (
@@ -116,12 +121,8 @@ export default function Dashboard() {
             Explore Pro
           </Text>
         </AnimatedPressable>
-        <AnimatedPressable testID="upload-audio-btn" onPress={handleUpload} style={styles.iconBtn} disabled={uploading}>
-          {uploading ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : (
-            <UploadCloud size={20} color={colors.textPrimary} />
-          )}
+        <AnimatedPressable testID="info-btn" onPress={showInfo} style={styles.iconBtn}>
+          <Info size={20} color={colors.textPrimary} />
         </AnimatedPressable>
       </View>
 
@@ -160,6 +161,8 @@ export default function Dashboard() {
     </View>
   );
 
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']} testID="dashboard-screen">
       <FlatList
@@ -173,22 +176,16 @@ export default function Dashboard() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={notesQuery.isFetching && !!notesQuery.data}
-            onRefresh={() => {
-              notesQuery.refetch();
-              foldersQuery.refetch();
+            refreshing={isManualRefreshing}
+            onRefresh={async () => {
+              setIsManualRefreshing(true);
+              await Promise.all([notesQuery.refetch(), foldersQuery.refetch()]);
+              setIsManualRefreshing(false);
             }}
             tintColor={colors.primary}
           />
         }
       />
-
-      {/* Loading overlay for first load */}
-      {notesQuery.isLoading ? (
-        <View pointerEvents="none" style={styles.firstLoad}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
-      ) : null}
 
       {/* Quota pill */}
       {notes.length > 0 ? (
@@ -226,13 +223,8 @@ const styles = StyleSheet.create({
   iconBtn: {
     width: 42,
     height: 42,
-    borderRadius: 999,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.sm,
   },
   avatar: {
     width: 30,
