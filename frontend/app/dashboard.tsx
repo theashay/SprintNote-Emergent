@@ -165,7 +165,7 @@ export default function Dashboard() {
       <FlatList
         testID="note-list"
         data={notes}
-        keyExtractor={(n) => n.note_id}
+        keyExtractor={(n, i) => n.note_id || `note-${i}`}
         renderItem={({ item }) => <NoteCard note={item} />}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={!notesQuery.isLoading ? renderEmpty : null}

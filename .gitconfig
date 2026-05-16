@@ -1,3 +1,13 @@
 [user]
-	email = github@emergent.sh
-	name = emergent-agent-e1
+	# Replace with your actual name and email
+	name = Your Name
+	email = your@email.com
+[init]
+	defaultBranch = main
+[push]
+	autoSetupRemote = true
+[core]
+	autocrlf = true
+	ignorecase = false
+[pull]
+	rebase = false

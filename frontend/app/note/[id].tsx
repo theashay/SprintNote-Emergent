@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import { Paths, File } from 'expo-file-system';
 import {
   ChevronLeft,
   Wand2,
@@ -136,8 +136,9 @@ export default function NoteDetail() {
         return;
       }
       const filename = `${(note.title || 'note').replace(/[^a-z0-9]/gi, '_').slice(0, 40)}.txt`;
-      const uri = `${FileSystem.cacheDirectory}${filename}`;
-      await FileSystem.writeAsStringAsync(uri, text);
+      const uri = Paths.join(Paths.cache, filename);
+      const file = new File(uri);
+      file.write(text);
       await Sharing.shareAsync(uri, { mimeType: 'text/plain', dialogTitle: 'Share note' });
     } catch (e: any) {
       Alert.alert('Share failed', e?.message || 'Could not share note');
